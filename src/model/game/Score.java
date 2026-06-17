@@ -1,4 +1,7 @@
-package model;
+package model.game;
+
+import model.team.Player;
+import model.team.Team;
 
 /**
  * Um gol (ou conjunto de gols) de um jogador num jogo.

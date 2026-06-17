@@ -1,4 +1,6 @@
-package model;
+package model.team;
+
+import model.Identifiable;
 
 import java.util.ArrayList;
 import java.util.List;

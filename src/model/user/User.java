@@ -1,4 +1,6 @@
-package model;
+package model.user;
+
+import model.Identifiable;
 
 /**
  * Usuário do sistema. Classe ABSTRATA — não existe "usuário genérico",

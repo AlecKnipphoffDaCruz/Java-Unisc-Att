@@ -1,8 +1,8 @@
 package service;
 
-import model.Bet;
-import model.PostGame;
-import model.Team;
+import model.bet.Bet;
+import model.game.PostGame;
+import model.team.Team;
 
 /** Pontua para cada equipe cujo número de gols o participante acertou. */
 public class TeamGoalsRule implements ScoringRule {

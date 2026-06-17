@@ -1,9 +1,9 @@
 package service;
 
-import model.Bet;
-import model.PostGame;
-import model.Score;
-import model.Team;
+import model.bet.Bet;
+import model.game.PostGame;
+import model.game.Score;
+import model.team.Team;
 
 import java.util.ArrayList;
 import java.util.List;

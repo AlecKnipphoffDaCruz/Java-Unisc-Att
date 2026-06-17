@@ -1,8 +1,8 @@
 package service;
 
-import model.Bet;
-import model.PostGame;
-import model.Team;
+import model.bet.Bet;
+import model.game.PostGame;
+import model.team.Team;
 
 /** Pontua se o participante cravou o placar completo (gols das duas equipes). */
 public class ExactScoreRule implements ScoringRule {

@@ -1,6 +1,6 @@
 package service;
 
-import model.Participant;
+import model.user.Participant;
 
 /** Uma linha do ranking: participante + sua pontuação total. */
 public class RankingEntry {

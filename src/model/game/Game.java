@@ -1,6 +1,8 @@
-package model;
+package model.game;
 
+import model.Identifiable;
 import model.enums.GameStatus;
+import model.team.Team;
 
 public class Game implements Identifiable {
     private final Long id;

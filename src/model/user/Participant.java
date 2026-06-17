@@ -1,4 +1,6 @@
-package model;
+package model.user;
+
+import model.bet.Bet;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,4 +1,4 @@
-package model;
+package model.user;
 
 /** Administrador: cadastra seleções, jogos e lança os resultados reais. */
 public class Admin extends User {

@@ -1,4 +1,9 @@
-package model;
+package model.bet;
+
+import model.game.Game;
+import model.game.Score;
+import model.team.Team;
+import model.user.Participant;
 
 import java.util.List;
 

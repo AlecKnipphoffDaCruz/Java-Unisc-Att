@@ -1,7 +1,7 @@
 package service;
 
-import model.Bet;
-import model.PostGame;
+import model.bet.Bet;
+import model.game.PostGame;
 
 /**
  * Interface de uma regra de pontuação. [INTERFACE]

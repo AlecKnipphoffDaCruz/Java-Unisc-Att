@@ -1,4 +1,4 @@
-package model;
+package model.team;
 
 import model.enums.Position;
 

@@ -1,14 +1,14 @@
 package app;
 
-import model.Admin;
-import model.Bet;
-import model.Game;
-import model.Participant;
-import model.Player;
-import model.PostGame;
-import model.Score;
-import model.Team;
-import model.User;
+import model.bet.Bet;
+import model.game.Game;
+import model.game.PostGame;
+import model.game.Score;
+import model.team.Player;
+import model.team.Team;
+import model.user.Admin;
+import model.user.Participant;
+import model.user.User;
 import model.enums.Position;
 import repository.InMemoryRepository;
 import repository.Repository;

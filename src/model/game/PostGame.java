@@ -1,4 +1,6 @@
-package model;
+package model.game;
+
+import model.team.Team;
 
 import java.util.List;
 

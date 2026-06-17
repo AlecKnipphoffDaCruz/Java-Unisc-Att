@@ -1,8 +1,8 @@
 package service;
 
-import model.Bet;
-import model.PostGame;
-import model.Team;
+import model.bet.Bet;
+import model.game.PostGame;
+import model.team.Team;
 
 /** Pontua se o participante acertou a seleção vencedora (ou o empate). */
 public class WinnerRule implements ScoringRule {
