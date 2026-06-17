@@ -1,4 +1,9 @@
-package model;
+package service;
+
+import model.Bet;
+import model.PostGame;
+import model.Score;
+import model.Team;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,15 +31,16 @@ public class ScoreCalculator {
         return total;
     }
 
-    /** Soma os gols de uma equipe em uma lista de Score (palpitada ou real). */
-    static int goalsOf(List<Score> scores, Team team) {
+    /** Soma os gols de uma equipe numa lista de Score (palpitada ou real). */
+    public static int goalsOf(List<Score> scores, Team team) {
         if (scores == null || team == null) {
             return 0;
         }
         int sum = 0;
         for (Score s : scores) {
-            if (s.team != null && s.team.id != null && s.team.id.equals(team.id)) {
-                sum += s.quantity;
+            if (s.getTeam() != null && s.getTeam().getId() != null
+                    && s.getTeam().getId().equals(team.getId())) {
+                sum += s.getQuantity();
             }
         }
         return sum;

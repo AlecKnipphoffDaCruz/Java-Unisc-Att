@@ -1,4 +1,9 @@
-package model;
+package service;
+
+import model.Bet;
+import model.Player;
+import model.PostGame;
+import model.Score;
 
 import java.util.List;
 
@@ -10,15 +15,15 @@ import java.util.List;
 public class ScorerRule implements ScoringRule {
     @Override
     public int calculate(Bet bet, PostGame result, PointsConfig config) {
-        if (bet.scoreList == null) {
+        if (bet.getPredictedScores() == null) {
             return 0;
         }
         int points = 0;
-        for (Score predicted : bet.scoreList) {
-            int realQuantity = goalsByPlayer(result.scores, predicted.player);
-            int matched = Math.min(predicted.quantity, realQuantity);
+        for (Score predicted : bet.getPredictedScores()) {
+            int realQuantity = goalsByPlayer(result.getScores(), predicted.getPlayer());
+            int matched = Math.min(predicted.getQuantity(), realQuantity);
             if (matched > 0) {
-                points += matched * config.scorerBasePoints * predicted.player.position.getWeight();
+                points += matched * config.getScorerBasePoints() * predicted.getPlayer().getPosition().getWeight();
             }
         }
         return points;
@@ -30,8 +35,8 @@ public class ScorerRule implements ScoringRule {
         }
         int sum = 0;
         for (Score s : scores) {
-            if (s.player != null && s.player.name.equals(player.name)) {
-                sum += s.quantity;
+            if (s.getPlayer() != null && s.getPlayer().getName().equals(player.getName())) {
+                sum += s.getQuantity();
             }
         }
         return sum;

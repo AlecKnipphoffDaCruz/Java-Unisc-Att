@@ -1,20 +1,32 @@
 package model;
 
-import model.enums.Role;
+/**
+ * Usuário do sistema. Classe ABSTRATA — não existe "usuário genérico",
+ * todo usuário é um Admin ou um Participant. [HERANÇA]
+ */
+public abstract class User implements Identifiable {
+    private final Long id;
+    private final String name;
 
-public class User {
-    Long id;
-    String name;
-    Role role;
-
-    public User(Long id, String name, Role role) {
+    protected User(Long id, String name) {
         this.id = id;
         this.name = name;
-        this.role = role;
     }
 
     @Override
+    public Long getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    /** Cada subtipo define seu próprio papel. [POLIMORFISMO] */
+    public abstract String getRole();
+
+    @Override
     public String toString() {
-        return "User: " + name + " (" + role + ")";
+        return getRole() + ": " + name + " (#" + id + ")";
     }
 }

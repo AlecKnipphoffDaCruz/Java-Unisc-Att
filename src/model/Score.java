@@ -1,10 +1,14 @@
 package model;
 
+/**
+ * Um gol (ou conjunto de gols) de um jogador num jogo.
+ * Reutilizado tanto no palpite (Bet) quanto no resultado real (PostGame).
+ */
 public class Score {
-    Game game;
-    Team team;
-    Player player;
-    int quantity;   // quantos gols esse jogador fez (ou que se palpita que fará)
+    private final Game game;
+    private final Team team;
+    private final Player player;
+    private final int quantity;
 
     public Score(Game game, Team team, Player player, int quantity) {
         this.game = game;
@@ -13,8 +17,24 @@ public class Score {
         this.quantity = quantity;
     }
 
+    public Game getGame() {
+        return game;
+    }
+
+    public Team getTeam() {
+        return team;
+    }
+
+    public Player getPlayer() {
+        return player;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
     @Override
     public String toString() {
-        return player.name + " (" + team.name + "): " + quantity + " gol(s)";
+        return player.getName() + " (" + team.getName() + "): " + quantity + " gol(s)";
     }
 }
