@@ -93,7 +93,11 @@ public class Main {
     }
 
     private void createTeam() {
-        String name = readLine("Nome da seleção: ");
+        String name = readLine("Nome da seleção (vazio para cancelar): ");
+        if (name.isEmpty()) {
+            System.out.println("Cadastro cancelado.");
+            return;
+        }
         Team team = teams.save(new Team(teamSeq++, name));
         System.out.println("Adicione jogadores (nome vazio para terminar).");
         while (true) {
@@ -108,7 +112,11 @@ public class Main {
     }
 
     private void createParticipant() {
-        String name = readLine("Nome do participante: ");
+        String name = readLine("Nome do participante (vazio para cancelar): ");
+        if (name.isEmpty()) {
+            System.out.println("Cadastro cancelado.");
+            return;
+        }
         User participant = users.save(new Participant(userSeq++, name));
         System.out.println("Cadastrado: " + participant);
     }
@@ -120,11 +128,19 @@ public class Main {
             return;
         }
         System.out.println("Seleção A:");
-        Team teamA = chooseFrom(all, "Escolha: ");
+        Team teamA = chooseFrom(all, "Escolha (0 para cancelar): ");
+        if (teamA == null) {
+            System.out.println("Cadastro cancelado.");
+            return;
+        }
         System.out.println("Seleção B:");
-        Team teamB = chooseFrom(all, "Escolha: ");
-        if (teamA == null || teamB == null || teamA.getId().equals(teamB.getId())) {
-            System.out.println("Seleções inválidas.");
+        Team teamB = chooseFrom(all, "Escolha (0 para cancelar): ");
+        if (teamB == null) {
+            System.out.println("Cadastro cancelado.");
+            return;
+        }
+        if (teamA.getId().equals(teamB.getId())) {
+            System.out.println("As duas seleções não podem ser iguais.");
             return;
         }
         Game game = games.save(new Game(gameSeq++, teamA, teamB));
@@ -137,9 +153,9 @@ public class Main {
             System.out.println("Nenhum jogo aberto para finalizar.");
             return;
         }
-        Game game = chooseFrom(open, "Jogo a finalizar: ");
+        Game game = chooseFrom(open, "Jogo a finalizar (0 para cancelar): ");
         if (game == null) {
-            System.out.println("Jogo inválido.");
+            System.out.println("Operação cancelada.");
             return;
         }
         System.out.println("Informe os gols reais do jogo:");
@@ -208,9 +224,9 @@ public class Main {
             System.out.println("Não há jogos abertos para você palpitar (você já palpitou em todos).");
             return;
         }
-        Game game = chooseFrom(available, "Jogo: ");
+        Game game = chooseFrom(available, "Jogo (0 para cancelar): ");
         if (game == null) {
-            System.out.println("Jogo inválido.");
+            System.out.println("Palpite cancelado.");
             return;
         }
         // trava extra: nunca dois palpites para o mesmo jogo
@@ -234,7 +250,12 @@ public class Main {
         }
         System.out.println("--- Seus palpites ---");
         for (Bet bet : bets) {
-            System.out.println(bet);
+            Game game = bet.getGame();
+            int goalsA = ScoreCalculator.goalsOf(bet.getPredictedScores(), game.getTeamA());
+            int goalsB = ScoreCalculator.goalsOf(bet.getPredictedScores(), game.getTeamB());
+            System.out.println(
+                    game.getTeamA().getName() + " " + goalsA + " x " + goalsB + " " + game.getTeamB().getName()
+                            + "  ->  " + bet.getPoints() + " ponto(s)");
         }
         System.out.println("Total: " + participant.getTotalPoints() + " ponto(s)");
     }
