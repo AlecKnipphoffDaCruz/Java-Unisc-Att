@@ -1,103 +1,235 @@
 # Diagrama de Classes — Bolão da Copa 2026
 
-Guia de modelagem. Os pesos/valores e a lógica ficam por sua conta na implementação.
-Marquei onde cada recurso de POO exigido pelo desafio aparece:
-[H] herança · [P] polimorfismo · [I] interface · [AGR] agregação · [COMP] composição
+Diagrama fiel ao código em `src/`. Recursos de POO exigidos pelo desafio:
+**[H]** herança · **[P]** polimorfismo · **[I]** interface · **[AGR]** agregação · **[COMP]** composição · **[G]** generics
 
+> **Como visualizar bonito no VSCode:** instale a extensão
+> **"Markdown Preview Mermaid Support"** (`bierner.markdown-mermaid`) ou
+> **"Mermaid Chart"** (`MermaidChart.vscode-mermaid-chart`) e abra o preview do Markdown
+> (`Cmd+Shift+V`). O bloco abaixo é renderizado automaticamente como diagrama.
 
-## USUÁRIOS  [H] [P]
+```mermaid
+classDiagram
+    direction LR
 
-Usuario  (abstract)
-    id
-    nome
-    + acoesDoMenu()        // abstract -> cada subclasse mostra opções diferentes [P]
+    %% ---------- CONTRATOS ----------
+    class Identifiable {
+        <<interface>>
+        +getId() Long
+    }
 
-    Admin  extends Usuario
-        // cadastra seleções, jogadores, jogos; adiciona participantes; lança placar real
+    class Repository~T~ {
+        <<interface>>
+        +save(T) T
+        +findAll() List~T~
+        +findById(Long) Optional~T~
+    }
+    class InMemoryRepository~T~ {
+        -items List~T~
+        +save(T) T
+        +findAll() List~T~
+        +findById(Long) Optional~T~
+    }
 
-    Participante  extends Usuario
-        listaPalpites : List<Palpite>     [AGR]
-        getPontuacaoTotal()               // = soma dos pontos dos palpites (calculado)
+    %% ---------- USUÁRIOS [H][P] ----------
+    class User {
+        <<abstract>>
+        -id Long
+        -name String
+        +getId() Long
+        +getName() String
+        +getRole()* String
+        +toString() String
+    }
+    class Admin {
+        +getRole() String
+    }
+    class Participant {
+        -bets List~Bet~
+        +getRole() String
+        +getBets() List~Bet~
+        +addBet(Bet) void
+        +getTotalPoints() int
+    }
 
+    %% ---------- SELEÇÃO E JOGADORES ----------
+    class Team {
+        -id Long
+        -name String
+        -players List~Player~
+        +getId() Long
+        +getName() String
+        +getPlayers() List~Player~
+        +addPlayer(Player) void
+    }
+    class Player {
+        -name String
+        -team Team
+        -position Position
+        +getName() String
+        +getTeam() Team
+        +getPosition() Position
+    }
+    class Position {
+        <<enum>>
+        GOALKEEPER(5)
+        DEFENDER(4)
+        FULLBACK(3)
+        MIDFIELDER(2)
+        FORWARD(1)
+        -weight int
+        +getWeight() int
+    }
 
-## SELEÇÃO E JOGADORES
+    %% ---------- JOGOS ----------
+    class Game {
+        -id Long
+        -teamA Team
+        -teamB Team
+        -status GameStatus
+        -result PostGame
+        +finish(PostGame) void
+        +isOpen() boolean
+        +getResult() PostGame
+    }
+    class GameStatus {
+        <<enum>>
+        OPEN
+        FINISHED
+    }
+    class PostGame {
+        -game Game
+        -winner Team
+        -scores List~Score~
+        +getWinner() Team
+        +getScores() List~Score~
+    }
+    class Score {
+        -game Game
+        -team Team
+        -player Player
+        -quantity int
+        +getTeam() Team
+        +getPlayer() Player
+        +getQuantity() int
+    }
 
-Selecao
-    nome / nacao
-    jogadores : List<Jogador>     [COMP]  // jogador não existe sem a seleção
+    %% ---------- PALPITE ----------
+    class Bet {
+        -participant Participant
+        -game Game
+        -predictedScores List~Score~
+        -predictedWinner Team
+        -points int
+        +getPredictedScores() List~Score~
+        +getPredictedWinner() Team
+        +getPoints() int
+        +setPoints(int) void
+    }
 
-Jogador
-    id
-    nome
-    posicao : Posicao             // enum
+    %% ---------- PONTUAÇÃO [I][P] ----------
+    class ScoringRule {
+        <<interface>>
+        +calculate(Bet, PostGame, PointsConfig) int
+    }
+    class WinnerRule
+    class TeamGoalsRule
+    class ExactScoreRule
+    class ScorerRule
+    class PointsConfig {
+        -winnerPoints int
+        -teamGoalsPoints int
+        -exactScorePoints int
+        -scorerBasePoints int
+    }
+    class ScoreCalculator {
+        -rules List~ScoringRule~
+        +calculate(Bet, PostGame, PointsConfig) int
+        +goalsOf(List~Score~, Team)$ int
+    }
 
-Posicao  (enum)
-    GOLEIRO, ZAGUEIRO, LATERAL, MEIA, ATACANTE
-    peso                          // posição menos provável de marcar -> peso MAIOR
+    %% ---------- RANKING ----------
+    class RankingService {
+        +ranking(List~Participant~) List~RankingEntry~
+    }
+    class RankingEntry {
+        -participant Participant
+        -totalPoints int
+        +getTotalPoints() int
+    }
 
+    %% ---------- RELAÇÕES ----------
+    User ..|> Identifiable
+    Team ..|> Identifiable
+    Game ..|> Identifiable
+    Repository ..|> Identifiable : T extends
+    InMemoryRepository ..|> Repository : [G][P]
 
-## JOGOS
+    User <|-- Admin : [H]
+    User <|-- Participant : [H]
+    Participant o-- "*" Bet : [AGR]
 
-Jogo
-    id
-    status : StatusJogo           // enum: ABERTO / FINALIZADO
-    timeA : Selecao               [AGR]  // a seleção existe independente do jogo
-    timeB : Selecao               [AGR]
-    resultado : ResultadoReal     // null enquanto status == ABERTO
+    Team *-- "*" Player : [COMP]
+    Player --> Position
+    Player --> Team
 
-StatusJogo  (enum)
-    ABERTO, FINALIZADO
+    Game --> GameStatus
+    Game o-- "2" Team : [AGR] teamA/teamB
+    Game *-- "0..1" PostGame : [COMP] result
+    PostGame o-- "0..1" Team : winner
+    PostGame *-- "*" Score : [COMP]
+    Score --> Player
+    Score --> Team
 
+    Bet --> Participant
+    Bet --> Game
+    Bet o-- "0..1" Team : predictedWinner
+    Bet *-- "*" Score : [COMP] predictedScores
 
-## RESULTADO REAL  (preenchido pelo admin ao finalizar o jogo)
+    ScoringRule <|.. WinnerRule : [I][P]
+    ScoringRule <|.. TeamGoalsRule : [I][P]
+    ScoringRule <|.. ExactScoreRule : [I][P]
+    ScoringRule <|.. ScorerRule : [I][P]
+    ScoreCalculator o-- "*" ScoringRule : [AGR][P]
+    ScoreCalculator ..> PointsConfig
+    ScorerRule ..> PointsConfig
+    ScorerRule ..> Position : usa weight
 
-ResultadoReal
-    golsTimeA
-    golsTimeB
-    goleadores : List<Gol>        [COMP]
-    getVencedor()                 // derivado do placar (pode dar empate)
+    RankingService ..> Participant
+    RankingService ..> RankingEntry
+    RankingEntry --> Participant
+```
 
+---
 
-## PALPITE  (entidade própria — 1 por jogo, por participante)
+## Mapa rápido dos pacotes (`src/`)
 
-Palpite
-    jogo : Jogo                   [AGR]
-    golsTimeA                     // placar palpitado
-    golsTimeB
-    goleadores : List<Gol>        [COMP]
-    pontos                        // preenchido pelo cálculo após o jogo finalizar
+| Pacote | Classes |
+|---|---|
+| `model` | `Identifiable` (interface) |
+| `model.user` | `User` (abstract), `Admin`, `Participant` |
+| `model.team` | `Team`, `Player` |
+| `model.game` | `Game`, `PostGame`, `Score` |
+| `model.bet` | `Bet` |
+| `model.enums` | `Position`, `GameStatus` |
+| `service` | `ScoringRule` (interface), `WinnerRule`, `TeamGoalsRule`, `ExactScoreRule`, `ScorerRule`, `PointsConfig`, `ScoreCalculator`, `RankingService`, `RankingEntry` |
+| `repository` | `Repository<T>` (interface), `InMemoryRepository<T>` |
+| `app` | `Main` |
 
-Gol                               // reaproveitado no Palpite e no ResultadoReal
-    jogador : Jogador             [AGR]
-    quantidade                    // quantos gols (o enunciado pede "e quantos gols farão")
+## Onde cada conceito de POO aparece
 
+- **[H] Herança** — `Admin` e `Participant` estendem `User` (abstrata).
+- **[P] Polimorfismo** — `getRole()` sobrescrito; as 4 `ScoringRule` intercambiáveis em `ScoreCalculator`; `InMemoryRepository` via interface `Repository`.
+- **[I] Interface** — `Identifiable`, `Repository<T>`, `ScoringRule`.
+- **[AGR] Agregação** — `Participant` ↔ `Bet`; `Game` ↔ `Team`; `ScoreCalculator` ↔ `ScoringRule`.
+- **[COMP] Composição** — `Team` → `Player`; `Game` → `PostGame`; `PostGame`/`Bet` → `Score`.
+- **[G] Generics** — `Repository<T extends Identifiable>` e `InMemoryRepository<T>`.
 
-## PONTUAÇÃO  [I] [P]
+## Regras de pontuação (resumo)
 
-ConfiguracaoPontuacao             // o grupo define os valores
-    pontosVencedor
-    pontosNumeroGolsEquipe        // acertou o nº de gols de UMA das equipes
-    pontosPlacarExato
-    pontosGoleadorBase            // base; multiplicada pelo peso da Posicao
-
-RegraPontuacao  (interface)       [I]
-    + calcular(palpite, resultado, config) : int
-
-    // implementações intercambiáveis [P]:
-    RegraVencedor          implements RegraPontuacao
-    RegraNumeroGolsEquipe  implements RegraPontuacao
-    RegraPlacarExato       implements RegraPontuacao
-    RegraGoleador          implements RegraPontuacao   // usa posicao.peso * pontosGoleadorBase
-
-CalculadoraPontuacao
-    regras : List<RegraPontuacao>     // soma o resultado de todas as regras [P]
-    calcularPalpite(palpite, resultado, config) : int
-
-
-## SERVIÇOS / APP
-
-RankingService
-    gerarRanking(participantes) : lista ordenada por pontuação total
-
-Main  (app)
-    monta os dados, exibe o menu e direciona Admin/Participante
+| Regra | Pontua quando | Valor padrão (`PointsConfig`) |
+|---|---|---|
+| `WinnerRule` | acertou a seleção vencedora (ou o empate) | `winnerPoints = 5` |
+| `TeamGoalsRule` | acertou o nº de gols de cada equipe (soma por equipe) | `teamGoalsPoints = 3` |
+| `ExactScoreRule` | cravou o placar completo das duas equipes | `exactScorePoints = 10` |
+| `ScorerRule` | acertou gols de um jogador → `base × peso da posição` | `scorerBasePoints = 2` |

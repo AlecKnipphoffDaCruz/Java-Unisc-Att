@@ -43,18 +43,20 @@ public class Main {
     private void run() {
         // todo bolão começa com um admin
         users.save(new Admin(userSeq++, "Administrador"));
+        // já deixa o bolão pré-preenchido (seleções, jogadores, jogos e participantes)
+        seedDemo();
+
+        printBanner();
 
         boolean running = true;
         while (running) {
             System.out.println("\n=== BOLÃO DA COPA 2026 ===");
             System.out.println("1 - Entrar como Admin");
             System.out.println("2 - Entrar como Participante");
-            System.out.println("9 - Carregar dados de exemplo");
             System.out.println("0 - Sair");
             switch (readInt("Opção: ")) {
                 case 1 -> adminMenu();
                 case 2 -> participantMenu();
-                case 9 -> seedDemo();
                 case 0 -> running = false;
                 default -> System.out.println("Opção inválida.");
             }
@@ -72,14 +74,18 @@ public class Main {
             System.out.println("2 - Cadastrar participante");
             System.out.println("3 - Cadastrar jogo");
             System.out.println("4 - Finalizar jogo (lançar resultado)");
-            System.out.println("5 - Ver ranking");
+            System.out.println("5 - Ver seleções e jogadores");
+            System.out.println("6 - Ver jogos");
+            System.out.println("7 - Ver ranking");
             System.out.println("0 - Voltar");
             switch (readInt("Opção: ")) {
                 case 1 -> createTeam();
                 case 2 -> createParticipant();
                 case 3 -> createGame();
                 case 4 -> finishGame();
-                case 5 -> showRanking();
+                case 5 -> listTeams();
+                case 6 -> listGames();
+                case 7 -> showRanking();
                 case 0 -> back = true;
                 default -> System.out.println("Opção inválida.");
             }
@@ -174,12 +180,16 @@ public class Main {
             System.out.println("\n--- " + participant.getName() + " ---");
             System.out.println("1 - Fazer palpite");
             System.out.println("2 - Ver meus palpites e pontos");
-            System.out.println("3 - Ver ranking");
+            System.out.println("3 - Ver seleções e jogadores");
+            System.out.println("4 - Ver jogos");
+            System.out.println("5 - Ver ranking");
             System.out.println("0 - Voltar");
             switch (readInt("Opção: ")) {
                 case 1 -> placeBet(participant);
                 case 2 -> showBets(participant);
-                case 3 -> showRanking();
+                case 3 -> listTeams();
+                case 4 -> listGames();
+                case 5 -> showRanking();
                 case 0 -> back = true;
                 default -> System.out.println("Opção inválida.");
             }
@@ -187,17 +197,28 @@ public class Main {
     }
 
     private void placeBet(Participant participant) {
-        List<Game> open = openGames();
-        if (open.isEmpty()) {
-            System.out.println("Nenhum jogo aberto para palpitar.");
+        // [REGRA] 1 palpite por jogo/pessoa: só mostra jogos abertos ainda não palpitados
+        List<Game> available = new ArrayList<>();
+        for (Game game : openGames()) {
+            if (!hasBet(participant, game)) {
+                available.add(game);
+            }
+        }
+        if (available.isEmpty()) {
+            System.out.println("Não há jogos abertos para você palpitar (você já palpitou em todos).");
             return;
         }
-        Game game = chooseFrom(open, "Jogo: ");
+        Game game = chooseFrom(available, "Jogo: ");
         if (game == null) {
             System.out.println("Jogo inválido.");
             return;
         }
-        System.out.println("Quem você acha que vai marcar?");
+        // trava extra: nunca dois palpites para o mesmo jogo
+        if (hasBet(participant, game)) {
+            System.out.println("Você já fez um palpite para este jogo. Apenas 1 por jogo.");
+            return;
+        }
+        System.out.println("Quem você acha que vai marcar? (escolha o time e depois o jogador)");
         List<Score> scores = readScores(game);
         Team winner = deriveWinner(game, scores);
         Bet bet = new Bet(participant, game, scores, winner);
@@ -231,39 +252,109 @@ public class Main {
         }
     }
 
+    // ===================== LISTAGENS (VER) =====================
+
+    /** Mostra todas as seleções com seus jogadores. */
+    private void listTeams() {
+        List<Team> all = teams.findAll();
+        if (all.isEmpty()) {
+            System.out.println("Nenhuma seleção cadastrada.");
+            return;
+        }
+        System.out.println("\n=== SELEÇÕES E JOGADORES ===");
+        for (Team team : all) {
+            System.out.println("\n" + team.getName() + " (#" + team.getId() + ")");
+            if (team.getPlayers().isEmpty()) {
+                System.out.println("  (sem jogadores)");
+                continue;
+            }
+            for (Player player : team.getPlayers()) {
+                System.out.println("  - " + player);
+            }
+        }
+    }
+
+    /** Mostra todos os jogos, com status e — se finalizado — o resultado. */
+    private void listGames() {
+        List<Game> all = games.findAll();
+        if (all.isEmpty()) {
+            System.out.println("Nenhum jogo cadastrado.");
+            return;
+        }
+        System.out.println("\n=== JOGOS ===");
+        for (Game game : all) {
+            StringBuilder line = new StringBuilder(game.toString());
+            if (!game.isOpen() && game.getResult() != null) {
+                PostGame result = game.getResult();
+                int goalsA = ScoreCalculator.goalsOf(result.getScores(), game.getTeamA());
+                int goalsB = ScoreCalculator.goalsOf(result.getScores(), game.getTeamB());
+                Team winner = result.getWinner();
+                line.append("  ")
+                        .append(goalsA).append(" x ").append(goalsB)
+                        .append(" -> ")
+                        .append(winner == null ? "Empate" : "Vencedor: " + winner.getName());
+            }
+            System.out.println(line);
+        }
+    }
+
     // ===================== HELPERS =====================
 
-    /** Coleta uma lista de gols (jogador + quantidade) para um jogo. */
-    private List<Score> readScores(Game game) {
-        List<Player> players = new ArrayList<>();
-        players.addAll(game.getTeamA().getPlayers());
-        players.addAll(game.getTeamB().getPlayers());
+    /** O participante já tem palpite para este jogo? */
+    private boolean hasBet(Participant participant, Game game) {
+        for (Bet bet : participant.getBets()) {
+            if (bet.getGame().getId().equals(game.getId())) {
+                return true;
+            }
+        }
+        return false;
+    }
 
+    /**
+     * Coleta os gols de um jogo. Primeiro escolhe-se o TIME, depois o JOGADOR
+     * daquele time, e por fim a quantidade de gols.
+     */
+    private List<Score> readScores(Game game) {
         List<Score> scores = new ArrayList<>();
-        if (players.isEmpty()) {
+        boolean noPlayers = game.getTeamA().getPlayers().isEmpty()
+                && game.getTeamB().getPlayers().isEmpty();
+        if (noPlayers) {
             System.out.println("(As seleções não têm jogadores cadastrados.)");
             return scores;
         }
         while (true) {
-            System.out.println("Jogadores:");
-            for (int i = 0; i < players.size(); i++) {
-                System.out.println((i + 1) + " - " + players.get(i));
-            }
-            int idx = readInt("Marcou gol (0 para terminar): ");
-            if (idx == 0) {
+            System.out.println("\nDe qual time saiu o gol?");
+            System.out.println("1 - " + game.getTeamA().getName());
+            System.out.println("2 - " + game.getTeamB().getName());
+            int teamChoice = readInt("Time (0 para terminar): ");
+            if (teamChoice == 0) {
                 break;
             }
-            if (idx < 1 || idx > players.size()) {
+            Team team;
+            if (teamChoice == 1) {
+                team = game.getTeamA();
+            } else if (teamChoice == 2) {
+                team = game.getTeamB();
+            } else {
+                System.out.println("Time inválido.");
+                continue;
+            }
+            if (team.getPlayers().isEmpty()) {
+                System.out.println("Esse time não tem jogadores cadastrados.");
+                continue;
+            }
+            System.out.println("Jogador de " + team.getName() + ":");
+            Player player = chooseFrom(team.getPlayers(), "Jogador: ");
+            if (player == null) {
                 System.out.println("Jogador inválido.");
                 continue;
             }
-            Player player = players.get(idx - 1);
             int quantity = readInt("Quantos gols? ");
             if (quantity <= 0) {
                 System.out.println("Quantidade inválida.");
                 continue;
             }
-            scores.add(new Score(game, player.getTeam(), player, quantity));
+            scores.add(new Score(game, team, player, quantity));
         }
         return scores;
     }
@@ -343,23 +434,58 @@ public class Main {
         return scanner.nextLine().trim();
     }
 
+    /** Taça da Copa em ASCII art, exibida na abertura. */
+    private void printBanner() {
+        System.out.println();
+        System.out.println("            ___________");
+        System.out.println("           '._==_==_=_.'");
+        System.out.println("           .-\\:      /-.");
+        System.out.println("          | (|:.     |) |");
+        System.out.println("           '-|:.     |-'");
+        System.out.println("             \\::.    /");
+        System.out.println("              '::. .'");
+        System.out.println("                ) (");
+        System.out.println("              _.' '._");
+        System.out.println("             '-------'");
+        System.out.println("     =============================");
+        System.out.println("        BOLÃO DA COPA 2026  *");
+        System.out.println("     =============================");
+    }
+
     /** Popula dados de exemplo para facilitar os testes / a demonstração. */
     private void seedDemo() {
         Team brasil = teams.save(new Team(teamSeq++, "Brasil"));
         brasil.addPlayer(new Player("Alisson", brasil, Position.GOALKEEPER));
         brasil.addPlayer(new Player("Marquinhos", brasil, Position.DEFENDER));
+        brasil.addPlayer(new Player("Vinicius Jr", brasil, Position.MIDFIELDER));
         brasil.addPlayer(new Player("Neymar", brasil, Position.FORWARD));
 
         Team argentina = teams.save(new Team(teamSeq++, "Argentina"));
         argentina.addPlayer(new Player("Martinez", argentina, Position.GOALKEEPER));
         argentina.addPlayer(new Player("Otamendi", argentina, Position.DEFENDER));
+        argentina.addPlayer(new Player("De Paul", argentina, Position.MIDFIELDER));
         argentina.addPlayer(new Player("Messi", argentina, Position.FORWARD));
 
+        Team franca = teams.save(new Team(teamSeq++, "França"));
+        franca.addPlayer(new Player("Maignan", franca, Position.GOALKEEPER));
+        franca.addPlayer(new Player("Saliba", franca, Position.DEFENDER));
+        franca.addPlayer(new Player("Tchouameni", franca, Position.MIDFIELDER));
+        franca.addPlayer(new Player("Mbappe", franca, Position.FORWARD));
+
+        Team alemanha = teams.save(new Team(teamSeq++, "Alemanha"));
+        alemanha.addPlayer(new Player("Neuer", alemanha, Position.GOALKEEPER));
+        alemanha.addPlayer(new Player("Rudiger", alemanha, Position.DEFENDER));
+        alemanha.addPlayer(new Player("Musiala", alemanha, Position.MIDFIELDER));
+        alemanha.addPlayer(new Player("Havertz", alemanha, Position.FORWARD));
+
+        // jogos já pré-preenchidos
         games.save(new Game(gameSeq++, brasil, argentina));
+        games.save(new Game(gameSeq++, franca, alemanha));
+        games.save(new Game(gameSeq++, brasil, franca));
 
         users.save(new Participant(userSeq++, "João"));
         users.save(new Participant(userSeq++, "Maria"));
 
-        System.out.println("Dados de exemplo carregados (2 seleções, 1 jogo, 2 participantes).");
+        System.out.println("Dados de exemplo carregados (4 seleções, 3 jogos, 2 participantes).");
     }
 }
