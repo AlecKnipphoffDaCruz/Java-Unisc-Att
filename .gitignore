@@ -1,0 +1,12 @@
+# Saída de compilação Java
+out/
+build/
+bin/
+*.class
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Sistema operacional
+.DS_Store
